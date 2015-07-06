@@ -20,8 +20,6 @@ How it can be adapted to use other sities:
     definition.
 
 """
-
-
 import urllib
 
 import untangle
