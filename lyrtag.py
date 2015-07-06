@@ -8,7 +8,7 @@ and embeds it in a USLT frame in the files id3-tag.
 It uses the my own lyrscraper module for the online lookup and
 mutagen.id3 for the tagging.
 
-Example usage:
+Example usage::
         lyrtag /media/data/MyMusic
 
 """
@@ -17,6 +17,42 @@ import sys
 
 import lyrscraper
 from mutagen.id3 import ID3, USLT, ID3NoHeaderError
+
+
+def main():
+    """Traverse path and embed lyrics. Log work to logfile.
+
+    Args:
+        sys.argv[1] (string): path to traverse
+
+    """
+    for root, dirs, files in os.walk(sys.argv[1]):
+        for file in files:
+            if file.endswith(".mp3"):
+                file=(os.path.join(root, file))
+
+                # get tag from file
+                tag = get_tag(file)
+                if not tag:
+                    error('no id3tag: ' + file)
+                    continue
+
+                # skip if frame exists
+                if has_USLT(tag):
+                    log('existing USLT tag: ' + file)
+                    continue
+
+                # get lyric
+                lyric = lyrscraper.lyric(tag)
+                if not lyric:
+                    log('no lyric: ' + file)
+                    continue
+
+                # save lyric frame
+                tag[u"USLT::"] = (USLT(encoding=3, lang=u'eng',
+                                       desc=u'lyrics.wikia.com', text=lyric))
+                tag.save(file)
+                log('lyrics written: ' + file)
 
 
 def log( message ):
@@ -77,31 +113,5 @@ def has_USLT( tag ):
     else:
         return False
 
-
-for root, dirs, files in os.walk(sys.argv[1]):
-    for file in files:
-        if file.endswith(".mp3"):
-            file=(os.path.join(root, file))
-
-            # get tag from file
-            tag = get_tag(file)
-            if not tag:
-                error('no id3tag: ' + file)
-                continue
-
-            # skip if frame exists
-            if has_USLT(tag):
-                log('existing USLT tag: ' + file)
-                continue
-
-            # get lyric
-            lyric = lyrscraper.lyric(tag)
-            if not lyric:
-                log('no lyric: ' + file)
-                continue
-
-            # save lyric frame
-            tag[u"USLT::"] = (USLT(encoding=3, lang=u'eng',
-                                   desc=u'lyrics.wikia.com', text=lyric))
-            tag.save(file)
-            log('lyrics written: ' + file)
+if __name__ == '__main__':
+    main()
